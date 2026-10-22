@@ -1,0 +1,54 @@
+:root {
+  --rag-bg: #f5f7fa;
+  --rag-text: #303133;
+  --rag-sub: #909399;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei',
+    Arial, sans-serif;
+  color: var(--rag-text);
+  background: var(--rag-bg);
+}
+
+.rag-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.rag-page__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.rag-page__title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.rag-muted {
+  color: var(--rag-sub);
+  font-size: 13px;
+}
+
+.rag-toolbar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}

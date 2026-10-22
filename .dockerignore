@@ -1,0 +1,24 @@
+# Docker 构建上下文排除项
+.git
+.github
+.gitignore
+.venv
+.env
+.env.*
+!.env.example
+__pycache__
+*.py[cod]
+.pytest_cache
+.ruff_cache
+.mypy_cache
+.pytest-storage
+data
+uploads
+docs
+tests
+frontend/node_modules
+frontend/dist
+frontend/.tmp
+*.log
+LICENSE
+AGENTS.md

@@ -1,0 +1,25 @@
+# 统一行尾，避免 Windows(core.autocrlf=true) 克隆后脚本与容器文件损坏
+* text=auto eol=lf
+
+# 容器与类 Unix 脚本必须 LF，否则 entrypoint.sh 在镜像内会报 bad interpreter
+*.sh        text eol=lf
+Dockerfile  text eol=lf
+*.conf      text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+
+# Windows 脚本保持 CRLF
+*.ps1       text eol=crlf
+*.bat       text eol=crlf
+*.cmd       text eol=crlf
+
+# 二进制文件不做行尾转换与差异比较
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.pdf   binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary

@@ -1,0 +1,47 @@
+# ---------------- 环境与密钥 ----------------
+.env
+.env.*
+!.env.example
+
+# ---------------- Python ----------------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.uv-cache/
+coverage.xml
+.coverage
+htmlcov/
+
+# ---------------- Node / 前端 ----------------
+node_modules/
+dist/
+.vite/
+frontend/node_modules/
+frontend/dist/
+frontend/.tmp/
+
+# ---------------- 日志与运行时产物 ----------------
+*.log
+logs/
+tmp/
+.DS_Store
+
+# ---------------- 编辑器 ----------------
+.idea/
+.vscode/
+*.swp
+
+# ---------------- 本地数据 ----------------
+data/
+uploads/
+.pytest-storage/
+
+# ---------------- 本地残留备份 ----------------
+*.bak
+*.orig
+*.rej

@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: 后端（ruff + pytest）
+    runs-on: ubuntu-latest
+
+    services:
+      # tests/conftest.py 会连接 localhost:5433 并自动创建 rag_test 库
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: rag
+          POSTGRES_PASSWORD: rag
+          POSTGRES_DB: rag
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U rag -d rag"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: 准备 Python 3.12
+        run: uv python install 3.12
+
+      - name: 安装依赖
+        run: uv sync --frozen
+
+      - name: ruff 检查
+        run: uv run ruff check .
+
+      - name: 运行测试（mock / hash 降级，不依赖外部 API）
+        env:
+          TEST_DATABASE_URL: postgresql+psycopg://rag:rag@localhost:5433/rag_test
+          LLM_PROVIDER: mock
+          EMBEDDING_PROVIDER: hash
+        run: uv run pytest
+
+  frontend:
+    name: 前端（类型检查 + 构建）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 安装前端依赖
+        working-directory: frontend
+        run: npm ci
+
+      - name: 类型检查
+        working-directory: frontend
+        run: npm run type-check
+
+      - name: 构建前端
+        working-directory: frontend
+        run: npm run build
+
+  docker:
+    name: Docker 编排校验
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 准备 .env
+        run: cp .env.example .env
+
+      - name: 校验 docker-compose 配置
+        run: docker compose config --quiet
+
+      - name: 校验 Dockerfile 语法
+        run: docker buildx build --check -f deploy/Dockerfile .

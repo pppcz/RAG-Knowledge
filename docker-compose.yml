@@ -1,0 +1,123 @@
+# 名称：ai-rag-knowledge-py 一键启动（基础设施 + 后端 + 前端）
+# 首次启动：docker compose up -d --build
+# 前端：http://localhost:8080    后端：http://localhost:8000/docs
+name: ai-rag-knowledge-py
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: rag-postgres
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      # 固定映射 5433，避免与宿主已有 PostgreSQL 冲突
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  redis:
+    image: redis:7
+    container_name: rag-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  minio:
+    image: minio/minio
+    container_name: rag-minio
+    restart: unless-stopped
+    env_file:
+      - .env
+    command: ["server", "/data", "--console-address", ":9001"]
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  backend:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile
+      target: backend
+    image: rag-backend:latest
+    container_name: rag-backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # 容器内通过服务名访问基础设施（覆盖 .env 中的 localhost 配置）
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-rag}:${POSTGRES_PASSWORD:-rag}@postgres:5432/${POSTGRES_DB:-rag}
+      REDIS_URL: redis://redis:6379/0
+      MINIO_ENDPOINT: minio:9000
+      SEED_DEFAULT_DATA: ${SEED_DEFAULT_DATA:-true}
+      WORKERS: "1"
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)\"",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile
+      target: frontend
+    image: rag-frontend:latest
+    container_name: rag-frontend
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  pgdata:
+    name: rag-pgdata
+  redisdata:
+    name: rag-redisdata
+  miniodata:
+    name: rag-miniodata
